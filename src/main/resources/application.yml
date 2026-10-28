@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: messages-websocket-service   # gateway routes lb://messages-websocket-service and lb:ws://messages-websocket-service
+  data:
+    mongodb:
+      # authSource = the database the user was CREATED IN (Step 9: messages), not "the database we use".
+      # Credentials have no defaults on purpose: a missing value fails startup with the variable's name.
+      # socketTimeoutMS is NOT optional: the driver's default is 0, meaning an infinite read. A Mongo that
+      # accepts the connection and then stops answering would hold a request thread forever (NFR5). It is
+      # the third leg of the timeout ladder Step 24 writes down in full.
+      uri: mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@${MONGO_HOST:mongo-messages}:${MONGO_PORT:27017}/${MONGO_DATABASE:messages}?authSource=${MONGO_DATABASE:messages}&serverSelectionTimeoutMS=${MONGO_SERVER_SELECTION_TIMEOUT_MS:2000}&connectTimeoutMS=${MONGO_CONNECT_TIMEOUT_MS:2000}&socketTimeoutMS=${MONGO_SOCKET_TIMEOUT_MS:2000}
+
+server:
+  port: ${SERVER_PORT:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always      # without this /actuator/health is only {"status":"UP"}; Step 22 revisits
+      probes:
+        enabled: true           # NOT auto-enabled outside Kubernetes; liveness is Docker's healthcheck (Step 7)
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://eureka-server:8761/eureka/}   # map key: must be camelCase defaultZone
+    register-with-eureka: true
+    fetch-registry: true                         # required: Step 24 calls lb://chat-service
+    should-enforce-registration-at-init: false   # NFR13: boot with Eureka down
+    registry-fetch-interval-seconds: 5
+    healthcheck:
+      enabled: true                              # aggregate health → Eureka instance status (proved in Step 11)
+    instance-info-replication-interval-seconds: 10   # how often local status is recomputed and pushed (default 30)
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.cloud.client.ip-address}:${server.port}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30

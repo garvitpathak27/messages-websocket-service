@@ -1,0 +1,58 @@
+services:
+  messages-websocket-service:
+    build:
+      context: .
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      SERVER_PORT: "8083"
+      MONGO_HOST: mongo-messages
+      MONGO_DATABASE: messages
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:?set MONGO_APP_USERNAME in messages-websocket-service/.env}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?set MONGO_APP_PASSWORD in messages-websocket-service/.env}
+    expose:
+      - "8083"
+    networks:
+      - chatapp
+    mem_limit: 512m
+    restart: unless-stopped
+    depends_on:
+      mongo-messages:
+        condition: service_healthy      # same-file dependency only; no cross-file depends_on (Step 7)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8083/actuator/health/liveness"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  mongo-messages:
+    image: mongo:7.0.14                 # pinned: 6.0+ ships mongosh and no legacy `mongo` binary
+    command: ["--wiredTigerCacheSizeGB", "0.25"]   # NFR14: default cache would claim half the host's RAM
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?set MONGO_ROOT_USERNAME in messages-websocket-service/.env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD in messages-websocket-service/.env}
+      MONGO_INITDB_DATABASE: messages
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:?set MONGO_APP_USERNAME in messages-websocket-service/.env}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?set MONGO_APP_PASSWORD in messages-websocket-service/.env}
+    volumes:
+      - mongo-messages-data:/data/db
+      - ./docker/mongo-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:27018:27017"         # local debugging only; removed entirely outside dev (NFR11)
+    networks:
+      - chatapp
+    mem_limit: 512m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  mongo-messages-data:
+
+networks:
+  chatapp:
+    external: true

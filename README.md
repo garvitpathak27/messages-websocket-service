@@ -54,7 +54,9 @@ record them in `docs/contracts.md`.
 |---|---|
 | chat-service exposes `my_role` on the room serializer, values `admin` / `member` | `chat-service/chat/serializers.py:51` |
 | Room ids are UUID strings | observed in chat-service responses |
-| auth-service's error envelope is **nested**: `{"error":{"code","message","details","request_id"}}` | auth-service responses |
+| auth-service's error envelope is a flat `{"detail": "..."}` with no code; chat-service's is nested `{"error":{"code","message","details","request_id"}}` | `auth-service/core/views.py`, `chat-service/chat/api/errors.py` |
+| This service emits **cloud-gateway's** flat envelope (`timestamp, status, error, code, message, path, requestId`, plus `details`), with chat-service's code spelling (FR15) | `docs/contracts.md`, Step 21 |
+| chat-service room detail is `/api/rooms/{roomId}/` (trailing slash required); `ROOM_DELETED` goes to exchange `chat.events`, key `chat.events.room_deleted`, room id in `payload.room_id` | `docs/contracts.md` → Pinned values |
 | The gateway sends **no** correlation header - this service generates its own | cloud-gateway `default-filters` |
 | chat-service publishes `MEMBER_REMOVED` and `ROOM_DELETED` after commit | `chat/events.py:38`, `chat/services.py:335` |
 | The event envelope contract (ADR-012) has a working validator | `chat-service/scripts/e2e/assert_event.py` |
