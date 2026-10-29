@@ -1,6 +1,14 @@
 spring:
   application:
     name: messages-websocket-service   # gateway routes lb://messages-websocket-service and lb:ws://messages-websocket-service
+  cloud:
+    loadbalancer:
+      eager-load:
+        clients:                # PLURAL. "client:" binds nothing and fails silently.
+          - chat-service        # must equal messages.chat.service-id
+  autoconfigure:
+    # no username/password users exist here; without this Boot logs "Using generated security password: ..."
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   data:
     mongodb:
       # authSource = the database the user was CREATED IN (Step 9: messages), not "the database we use".
@@ -44,6 +52,18 @@ eureka:
 messages:
   mongo:
     index-retry-seconds: ${MESSAGES_MONGO_INDEX_RETRY_SECONDS:5}   # no Java default: a missing block fails startup by name
+  content:
+    max-length: ${MESSAGES_CONTENT_MAX_LENGTH:4000}   # spec §8; counted in Unicode code points after trimming
   page:
     default-limit: ${MESSAGES_PAGE_DEFAULT_LIMIT:50}   # FR3 default; applied by the controller (Step 27)
     max-limit: ${MESSAGES_PAGE_MAX_LIMIT:100}          # FR3 max; validated in Step 27, enforced again here
+  chat:
+    service-id: chat-service
+    room-detail-path: ${CHAT_ROOM_DETAIL_PATH}        # pinned in Step 3; no default on purpose
+    connect-timeout-ms: ${CHAT_CONNECT_TIMEOUT_MS:1000}
+    read-timeout-ms: ${CHAT_READ_TIMEOUT_MS:2000}     # not raised to cover chat's own ~6.4 s auth budget (Step 24 ladder)
+    retry-backoff-ms: ${CHAT_RETRY_BACKOFF_MS:200}    # one retry, connect-level failures only
+  auth:
+    grpc-target: ${AUTH_GRPC_TARGET:auth-service:50051}       # Compose DNS, never Eureka
+    deadline-ms: ${AUTH_GRPC_DEADLINE_MS:2000}                # per call (interceptor), roadmap: 2 s
+    retry-backoff-ms: ${AUTH_GRPC_RETRY_BACKOFF_MS:200}       # one retry, UNAVAILABLE only

@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest(properties = {
 		"MONGO_APP_USERNAME=test",
 		"MONGO_APP_PASSWORD=test",
+		"CHAT_ROOM_DETAIL_PATH=/api/rooms/{roomId}/",
 		"eureka.client.enabled=false"
 })
 class MessagesWebSocketServiceApplicationTests {

@@ -4,9 +4,11 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
 COPY pom.xml .
-RUN mvn -B -q dependency:go-offline
+# ~/.m2 is a BuildKit cache mount: a download that fails halfway (flaky network) costs only what's
+# missing on the next build, not the whole dependency tree again.
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
 COPY src ./src
-RUN mvn -B -q -DskipTests package
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q -DskipTests package
 
 # ---- runtime stage: glibc JRE, not alpine ----
 FROM eclipse-temurin:21-jre-jammy

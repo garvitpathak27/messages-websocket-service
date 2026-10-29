@@ -1,0 +1,5 @@
+# Profile "diag": Steps 25-26 only (infra/test.sh phase7_checks / drill_chat_outage). Run as a separate,
+# unregistered container; never set in docker-compose.yml. Step 32 deletes it with MembershipDiagController.
+eureka:
+  client:
+    register-with-eureka: false     # never receives gateway traffic; fetch-registry stays true so lb:// still works
