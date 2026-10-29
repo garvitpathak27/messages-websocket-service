@@ -1,6 +1,5 @@
 package com.chatapp.messages.security;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -96,9 +95,10 @@ class SecurityConfigTest {
     @Test
     void validTokenGetsPastSecurityAndAuthServiceIsAskedOnce() throws Exception {
         when(authClient.verify("tok")).thenReturn(new AuthResult.Valid("usr_1", List.of("user")));
-        // No controller until Step 28: a 404 (not 401/503) proves the request got past authentication.
+        // The controller's own 400 (roomId is required), not 401/503, proves the request got past authentication.
         mvc.perform(get("/api/messages").header("Authorization", "Bearer tok"))
-                .andExpect(status().isNotFound())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
                 .andExpect(header().doesNotExist("Set-Cookie"));
         verify(authClient, times(1)).verify("tok");   // one filter in the chain, not a second servlet registration
     }
@@ -106,9 +106,11 @@ class SecurityConfigTest {
     @Test
     void postIsNotBlockedByCsrf() throws Exception {
         when(authClient.verify("tok")).thenReturn(new AuthResult.Valid("usr_1", List.of("user")));
-        // No controller yet: the static-resource fallback answers 404 or 405. A 403 would mean CSRF is still on.
-        mvc.perform(post("/api/messages").header("Authorization", "Bearer tok"))
-                .andExpect(result -> assertThat(result.getResponse().getStatus()).isIn(404, 405));
+        // Malformed JSON reaches the controller's 400. A 403 would mean CSRF is still on.
+        mvc.perform(post("/api/messages").header("Authorization", "Bearer tok")
+                        .contentType("application/json").content("{not json"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_JSON"));
     }
 
     @Test

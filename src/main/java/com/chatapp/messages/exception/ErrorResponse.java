@@ -27,9 +27,25 @@ public record ErrorResponse(
         @JsonInclude(JsonInclude.Include.NON_NULL) String path,
         String requestId) {
 
+    // Phase 6 (Steps 21-22)
     public static final String TOKEN_MISSING = "TOKEN_MISSING";
     public static final String TOKEN_INVALID = "TOKEN_INVALID";
     public static final String AUTH_UNAVAILABLE = "AUTH_UNAVAILABLE";
+    // Phase 8 (Step 27) — see the error matrix
+    public static final String VALIDATION_FAILED = "VALIDATION_FAILED";
+    public static final String MALFORMED_JSON = "MALFORMED_JSON";
+    public static final String INVALID_PARAMETER = "INVALID_PARAMETER";
+    public static final String INVALID_CURSOR = "INVALID_CURSOR";
+    public static final String INVALID_ID = "INVALID_ID";
+    public static final String NOT_FOUND = "NOT_FOUND";
+    public static final String FORBIDDEN = "FORBIDDEN";
+    public static final String MESSAGE_DELETED = "MESSAGE_DELETED";
+    public static final String METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED";
+    public static final String UNSUPPORTED_MEDIA_TYPE = "UNSUPPORTED_MEDIA_TYPE";
+    public static final String REQUEST_REJECTED = "REQUEST_REJECTED";
+    public static final String DEPENDENCY_UNAVAILABLE = "DEPENDENCY_UNAVAILABLE";
+    public static final String DEPENDENCY_TIMEOUT = "DEPENDENCY_TIMEOUT";
+    public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
 
     /** An HTTP error body. `error` is the status' reason phrase, exactly as the gateway writes it. */
     public static ErrorResponse http(HttpStatusCode status, String code, String message, String path,
