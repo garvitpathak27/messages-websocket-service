@@ -40,3 +40,10 @@ eureka:
     instance-id: ${spring.cloud.client.ip-address}:${server.port}
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
+
+messages:
+  mongo:
+    index-retry-seconds: ${MESSAGES_MONGO_INDEX_RETRY_SECONDS:5}   # no Java default: a missing block fails startup by name
+  page:
+    default-limit: ${MESSAGES_PAGE_DEFAULT_LIMIT:50}   # FR3 default; applied by the controller (Step 27)
+    max-limit: ${MESSAGES_PAGE_MAX_LIMIT:100}          # FR3 max; validated in Step 27, enforced again here

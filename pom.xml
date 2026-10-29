@@ -24,7 +24,7 @@
         <spring-cloud.version>2025.0.0</spring-cloud.version>
     </properties>
 
-    <!-- Each starter arrives in the phase that first uses it (Step 4). Still to come: Testcontainers: Step 17,
+    <!-- Each starter arrives in the phase that first uses it (Step 4). Still to come:
          gRPC: Step 19, Security: Step 22, Validation: Step 27, AMQP: Step 33, WebSocket: Step 37. -->
     <dependencies>
         <dependency>
@@ -49,6 +49,16 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -69,6 +79,19 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!-- Runs *IT classes (Testcontainers) in `verify`; -DskipTests in the Dockerfile skips them too. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
