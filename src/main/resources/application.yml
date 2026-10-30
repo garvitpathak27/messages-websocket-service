@@ -9,6 +9,25 @@ spring:
   autoconfigure:
     # no username/password users exist here; without this Boot logs "Using generated security password: ..."
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:1s}     # amqp-client default is 60 s (Step 24 ladder: publish <= 1 s)
+    channel-rpc-timeout: ${RABBITMQ_CHANNEL_RPC_TIMEOUT:1s}   # default 10 min: a hung broker would hold a request thread
+    publisher-confirm-type: correlated                         # async: a NACK is logged, the write path never waits
+    listener:
+      simple:
+        default-requeue-rejected: false     # Spring AMQP's default (true) requeues forever on any exception
+        prefetch: 10
+        retry:
+          enabled: true                     # transient failures: 4 attempts, 1 s / 2 s / 4 s, then DLQ
+          max-attempts: 4
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 8s
   data:
     mongodb:
       # authSource = the database the user was CREATED IN (Step 9: messages), not "the database we use".
@@ -31,6 +50,10 @@ management:
       show-details: always      # without this /actuator/health is only {"status":"UP"}; Step 22 revisits
       probes:
         enabled: true           # NOT auto-enabled outside Kubernetes; liveness is Docker's healthcheck (Step 7)
+      group:
+        eureka:
+          include: ping,diskSpace,mongo,messageIndexes   # NOT rabbit (soft), NOT discoveryComposite (a cycle)
+          show-details: always
 
 eureka:
   client:
@@ -67,3 +90,20 @@ messages:
     grpc-target: ${AUTH_GRPC_TARGET:auth-service:50051}       # Compose DNS, never Eureka
     deadline-ms: ${AUTH_GRPC_DEADLINE_MS:2000}                # per call (interceptor), roadmap: 2 s
     retry-backoff-ms: ${AUTH_GRPC_RETRY_BACKOFF_MS:200}       # one retry, UNAVAILABLE only
+  events:
+    exchange: messages.events                        # ours: topic, durable (roadmap)
+    routing-key-prefix: messages.events
+    producer: messages-websocket-service
+    chat:
+      exchange: ${CHAT_EVENTS_EXCHANGE}              # chat-service's; pinned in Step 3
+      exchange-type: ${CHAT_EVENTS_EXCHANGE_TYPE}    # pinned from `rabbitmqctl list_exchanges name type durable`
+      room-deleted-routing-key: ${ROOM_DELETED_ROUTING_KEY}
+      room-id-field: ${ROOM_DELETED_ROOM_ID_FIELD}
+    room-deleted-queue: messages-websocket-service.room-deleted
+    dead-letter-exchange: messages-websocket-service.dlx
+    room-deleted-dlq: messages-websocket-service.room-deleted.dlq
+    cleanup-batch-size: 500                          # roadmap
+  ws:
+    allowed-origins: ${WS_ALLOWED_ORIGINS:http://localhost:5173}   # handshake Origin check only; no CORS headers are emitted
+    heartbeat-ms: ${WS_HEARTBEAT_MS:10000}                         # STOMP heart-beats; keep idle sockets alive through the gateway (Phase 12)
+    inbound-threads: ${WS_INBOUND_THREADS:16}                      # CONNECT/SUBSCRIBE make blocking calls (<= 2 s auth, <= 4.2 s membership)

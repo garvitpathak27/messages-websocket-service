@@ -7,6 +7,13 @@ services:
       SERVER_PORT: "8083"
       AUTH_GRPC_TARGET: auth-service:50051
       CHAT_ROOM_DETAIL_PATH: /api/rooms/{roomId}/   # pinned in Step 3: trailing slash required (APPEND_SLASH -> 301)
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:?set RABBITMQ_USERNAME in messages-websocket-service/.env}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in messages-websocket-service/.env}
+      CHAT_EVENTS_EXCHANGE: chat.events                  # pinned in Step 3
+      CHAT_EVENTS_EXCHANGE_TYPE: topic
+      ROOM_DELETED_ROUTING_KEY: chat.events.room_deleted
+      ROOM_DELETED_ROOM_ID_FIELD: room_id
       MONGO_HOST: mongo-messages
       MONGO_DATABASE: messages
       MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:?set MONGO_APP_USERNAME in messages-websocket-service/.env}
